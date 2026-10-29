@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>JDBC Shop — панель менеджера</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:24px;color:#222}
+ button{margin:2px;padding:6px 12px;cursor:pointer}
+ table{border-collapse:collapse;margin-top:12px}
+ th,td{border:1px solid #ccc;padding:4px 10px;text-align:left}
+ th{background:#f0f0f0}
+ pre{background:#f7f7f7;padding:10px;overflow:auto}
+ .yes{background:#ffd6d6}.no{background:#d9f5d9}
+</style>
+</head>
+<body>
+<h2>Интернет-магазин — панель менеджера (JDBC + PostgreSQL)</h2>
+<div>
+ <button onclick="show('/api/customers')">Клиенты</button>
+ <button onclick="show('/api/categories')">Категории</button>
+ <button onclick="show('/api/products')">Товары</button>
+ <button onclick="show('/api/orders')">Заказы</button>
+ <button onclick="show('/api/reports/sales-by-category')">Отчёт: продажи по категориям</button>
+ <button onclick="show('/api/reports/top-customers')">Отчёт: топ клиентов (функция)</button>
+ <button onclick="matrix()">Уровни изоляции</button>
+</div>
+<div id="out"></div>
+<script>
+async function get(url){const r=await fetch(url);const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j}
+function esc(s){return String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+async function show(url){
+ const o=document.getElementById('out');
+ try{const rows=await get(url);
+  if(!rows.length){o.innerHTML='<p>Пусто</p>';return}
+  const cols=Object.keys(rows[0]);
+  o.innerHTML='<h3>'+esc(url)+'</h3><table><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>'+
+   rows.map(r=>'<tr>'+cols.map(c=>'<td>'+esc(r[c])+'</td>').join('')+'</tr>').join('')+'</table>';
+ }catch(e){o.innerHTML='<pre>'+esc(e.message)+'</pre>'}
+}
+async function matrix(){
+ const o=document.getElementById('out');o.innerHTML='Выполняю сценарии…';
+ try{const j=await get('/api/isolation/report');const m=j.matrix;
+  const lv=Object.keys(Object.values(m)[0]);
+  o.innerHTML='<h3>Аномалии по уровням изоляции (PostgreSQL)</h3><table><tr><th>Аномалия</th>'+lv.map(l=>'<th>'+l+'</th>').join('')+'</tr>'+
+   Object.entries(m).map(([a,r])=>'<tr><td>'+a+'</td>'+lv.map(l=>'<td class="'+(r[l]==='ВОЗНИКАЕТ'?'yes':'no')+'">'+r[l]+'</td>').join('')+'</tr>').join('')+'</table>';
+ }catch(e){o.innerHTML='<pre>'+esc(e.message)+'</pre>'}
+}
+</script>
+</body>
+</html>
